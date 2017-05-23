@@ -14,10 +14,74 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
+	"net/http"
+	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+	
+	"github.com/ziotom78/stdb/db"
 )
+
+const (
+	maxNumOfTestsToDisplay = 15
+)
+
+type dbEntry struct {
+	ID int
+	Test db.Test
+}
+
+var (
+	dbConn db.Connection
+	username string
+)
+
+// Show the main web page (template: mainpage.html)
+func mainPage(c *gin.Context) {
+	ids, _ := dbConn.GetListOfTestIDs(username, -1)
+	overallNumOfTests := len(ids)
+
+	var numOfTests = overallNumOfTests
+	if overallNumOfTests > maxNumOfTestsToDisplay {
+		numOfTests = maxNumOfTestsToDisplay
+	}
+
+	entries := make([]dbEntry, numOfTests)
+	ids, _ = dbConn.GetListOfTestIDs(username, numOfTests)
+
+	for idx, curID := range ids {
+		entries[idx].ID = curID
+		dbConn.GetTest(curID, username, &entries[idx].Test)
+	}
+
+	c.HTML(http.StatusOK, "mainpage.html", gin.H{
+		"databaseSchemaVersion": db.DatabaseSchemaVersion,
+		"overallNumOfTests": overallNumOfTests,
+		"entries": entries,
+	})
+}
+
+// Show a page containing information for a test (template: testinfo.html)
+func testInformation(c *gin.Context) {
+	testID, err := strconv.Atoi(c.Param("testID"))
+	if err != nil {
+		c.HTML(http.StatusNotFound, "error.html", gin.H{
+			"errorMessage": fmt.Sprintf("%v", err),
+		})
+		return
+	}
+
+	var test db.Test
+	dbConn.GetTest(testID, username, &test)
+
+	c.HTML(http.StatusOK, "testinfo.html", gin.H{
+		"testID": testID,
+		"test": test,
+	})
+}
 
 // webuiCmd represents the webui command
 var webuiCmd = &cobra.Command{
@@ -26,20 +90,33 @@ var webuiCmd = &cobra.Command{
 	Long: `Start a web server on the specified port of
 the current host.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("webui called")
+		port, err := strconv.Atoi(cmd.Flag("port").Value.String())
+		dbpath := cmd.Flag("dbpath").Value.String()
+
+		log.Printf("webui called, connecting to database at \"%s\"", dbpath)
+
+		if err != nil {
+			log.Fatalf("wrong port number %v", cmd.Flag("port").Value)
+		}
+
+		if err := dbConn.Connect(dbpath); err != nil {
+			log.Fatal(err)
+		}
+
+		router := gin.Default()
+		router.LoadHTMLGlob("templates/*.html")
+
+		router.GET("/", mainPage)
+		router.GET("/tests/:testID", testInformation)
+
+		router.Run(fmt.Sprintf(":%d", port))
+
+		dbConn.Disconnect()
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(webuiCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// webuiCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// webuiCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	webuiCmd.PersistentFlags().String("port", "8080", "Number of the port to use")
 }

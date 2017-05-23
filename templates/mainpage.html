@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        Strip test database
+    </title>
+</head>
+
+<body>
+    <h1>
+        LSPE/Strip test database
+    </h1>
+
+    <div id="statistics">
+        <p>The database contains a total of {{ .overallNumOfTests }} tests</p>
+        <p>Version of the database schema: {{ .databaseSchemaVersion }}</p>
+    </div>
+
+    <div id="testtable">
+        <table class="testtable">
+            <tr>
+                <th>Polarimeter</th>
+                <th>Name</th>
+                <th>Acquisition date</th>
+                <th>Cryogenic?</th>
+            </tr>
+
+            {{ range .entries }}
+            <tr>
+                <td> {{ .Test.Polarimeter }} </td>
+                <td> <a href="/tests/{{ .ID }}"> {{ .Test.ShortName }} </a> </td>
+                <td> {{ .Test.CreationDate }} </td>
+                <td> {{ if .Test.CryogenicFlag }} X {{ end }} </td>
+            </tr>
+            {{ end }}
+        </table>
+    </div>
+
+    {{ template "cmdpanel.html" }}
+</body>
+
+</html>

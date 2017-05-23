@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        Strip test database
+    </title>
+</head>
+
+<body>
+    <h1>
+        «{{ .test.ShortName }}»
+    </h1>
+
+    <div class="testinfo">
+        {{ .test.Description }}
+    </div>
+
+    <div class="testDownload">
+        <p><a href="/test/{{ .testID }}/download">Download</a></p>
+    </div>
+
+    {{ template "cmdpanel.html" }}
+</body>
+
+</html>
