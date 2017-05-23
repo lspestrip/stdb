@@ -30,6 +30,7 @@ import (
 	"github.com/astrogo/fitsio"
 
 	"github.com/ziotom78/stdb/convert"
+	"database/sql"
 )
 
 // Test is a structure holding all the information related to a test
@@ -40,7 +41,7 @@ type Test struct {
 	Username string // Name of the user which has uploaded the test in the db
 	FitsChecksum string // Checksum of the FITS file containing the test data
 	TestType string // Type of test (it should refer to the Test Plan document)
-	TimeSpanSec float32 // Length of the test, in seconds
+	TimeSpanSec float64 // Length of the test, in seconds
 	CryogenicFlag bool // Was the test performed at cryogenic temperatures?
 	Polarimeter int // Number of the polarimeter being tested
 	NumOfSamples int // Number of samples acquired during the test
@@ -113,7 +114,7 @@ func createFitsFile(inputFileName string, w io.Writer, test *Test) (convert.Test
 // unique id of the test and an Error object.
 func (conn *Connection) AddTest(newTest *Test,
                                 username string,
-								inputFileName string) (int64, error) {
+								inputFileName string) (int, error) {
 	if (! conn.Active) {
 		return -1, fmt.Errorf(MsgInactiveConnection)
 	}
@@ -127,18 +128,22 @@ func (conn *Connection) AddTest(newTest *Test,
 
 	result, err := tx.Exec(`
 insert into tests (short_name, 
-                   description, 
+                   description,
+				   creation_date,
 				   user_id, 
 				   type, 
 				   is_cryogenic,
-				   polarimeter)
-values (?, ?, ?, ?, ?, ?)`,
+				   polarimeter,
+				   num_of_samples)
+values (?, ?, ?, ?, ?, ?, ?, ?)`,
 		newTest.ShortName,
 		newTest.Description,
+		newTest.CreationDate.Format(time.RFC3339Nano),
 		username,
 		newTest.TestType,
 		newTest.CryogenicFlag,
-		newTest.Polarimeter)
+		newTest.Polarimeter,
+		newTest.NumOfSamples)
 	if err != nil {
 		tx.Rollback()
 		return -1, err
@@ -187,5 +192,68 @@ values (?, ?, ?)`,
 		return -1, err
 	}
 
-	return id, nil
+	return int(id), nil
+}
+
+// GetTest searches for a test with the given ID in the database.
+// If a matching test is found in the database, the function fills
+// the structure pointed by "test." The parameter "username" is
+// used only for logging purposes, and it can be empty
+func (conn *Connection) GetTest(testID int,
+                                username string,
+								test *Test) error {
+	if (! conn.Active) {
+		return fmt.Errorf(MsgInactiveConnection)
+	}
+
+	var (
+		shortName sql.NullString
+		description sql.NullString
+		creationDate sql.NullString
+		timeSpanSec sql.NullFloat64
+	)
+	err := conn.Connection.QueryRow(`
+select short_name,
+       description,
+	   creation_date,
+	   user_id,
+	   type,
+	   time_span_sec,
+	   is_cryogenic,
+	   polarimeter,
+	   num_of_samples
+from tests where test_id = ?`,
+		testID).Scan(
+			&shortName,
+			&description,
+			&creationDate,
+			&test.Username,
+			&test.TestType,
+			&timeSpanSec,
+			&test.CryogenicFlag,
+			&test.Polarimeter,
+			&test.NumOfSamples)
+	if err != nil {
+		return err
+	}
+
+	if shortName.Valid {
+		test.ShortName = shortName.String
+	}
+	if description.Valid {
+		test.Description = description.String
+	}
+	if creationDate.Valid {
+		test.CreationDate, err = time.Parse(time.RFC3339Nano, creationDate.String)
+		if err != nil {
+			return err
+		}
+	}
+	if timeSpanSec.Valid {
+		test.TimeSpanSec = timeSpanSec.Float64
+	}
+
+	conn.Log(fmt.Sprintf("request for test with ID=%d has been satisfied", testID), username)
+
+	return nil
 }

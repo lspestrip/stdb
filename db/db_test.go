@@ -25,7 +25,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 	"testing"
+	"time"
 )
 
 // This is a temporary directory that will contain the database created for the tests
@@ -51,15 +53,27 @@ func TestIntegratedDatabase(t *testing.T) {
 	}
 
 	inputFilePath := path.Join("..", "testdata", "keithley_file.xls")
-	_, err := conn.AddTest(&Test{
+	refTest := Test{
 		ShortName: "short",
 		Description: "long description",
+		CreationDate: time.Now().UTC(),
 		TestType: "sweep",
 		CryogenicFlag: true,
 		Polarimeter: 49,
-	}, "testuser", inputFilePath);
-	if err != nil {
+		NumOfSamples: 12345,
+	}
+	testID, err := conn.AddTest(&refTest, "testuser", inputFilePath);
+	if err != nil || testID < 0 {
 		t.Errorf("unable to add a new test to the database: %v", err)
+	}
+
+	var test Test
+	if err := conn.GetTest(testID, "dummy", &test); err != nil {
+		t.Errorf("Error while calling GetTest with ID=%d: %v", testID, err)
+	}
+
+	if !reflect.DeepEqual(refTest, test) {
+		t.Errorf("GetTest returned the wrong test: %v instead of %v", test, refTest)
 	}
 }
 

@@ -88,14 +88,14 @@ create table tests (
 	test_id integer not null primary key,   -- Unique ID for this test
 	short_name text,                        -- Short, easy to remember name
 	description text,                       -- Full description of the test
-	creation_date text,                     -- Time when the acquisition stopped (YYYY-MM-DDTHH:MM:SS.SSS)
+	creation_date text not null,            -- Time when the acquisition stopped (YYYY-MM-DDTHH:MM:SS.SSS)
 	user_id text not null,                  -- ID of the user which uploaded the test
 	fits_checksum text,                     -- Checksum of the FITS file
-	type text,                              -- "dc", "noise", "bandpass", ...
+	type text not null,                     -- "dc", "noise", "bandpass", ...
 	time_span_sec number,                   -- Length of the acquisition, in seconds
 	is_cryogenic integer not null,          -- Was the test done in cryogenic conditions? (0/1)
-	polarimeter integer,                    -- Number of the polarimeter being tested
-	num_of_samples integer                  -- Number of samples acquired during the test
+	polarimeter integer not null,           -- Number of the polarimeter being tested
+	num_of_samples integer not null         -- Number of samples acquired during the test
 );
 
 create table users (
