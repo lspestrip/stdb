@@ -145,11 +145,15 @@ with the test.`,
 			log.Fatal(err)
 		}
 
-		// TODO: continue from here: compute the checksum of the FITS file somewhere above
-		//testFitsChecksum := db.FitsChecksum()
-		dbpath := "./test1"
-		username := "blabla"
-		fitsFileName := "blabla.fits"
+		dbpath := cmd.Flag("dbpath").Value.String()
+		username := cmd.Flag("username").Value.String()
+
+		conn := db.Connection{}
+		if err := conn.Connect(dbpath); err != nil {
+			log.Fatal(err)
+		}
+		defer conn.Disconnect()
+
 		newTest := db.Test{
 			ShortName: testShortName,
 			Description: testDescription,
@@ -158,20 +162,9 @@ with the test.`,
 			CryogenicFlag: testCryogenicFlag,
 			Polarimeter: testPolarimeter,
 		}
-
-		conn := db.Connection{}
-		if err := conn.Connect(dbpath); err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Disconnect()
-
-		testID, err := conn.AddTest(&newTest, username, fitsFileName)
+		testID, err := conn.AddTest(&newTest, username, testFile)
 		if err != nil {
 			log.Fatalf("unable to add file \"%s\": %v", testFile, err)
-		}
-
-		for idx, curTest := range args[1:] {
-			log.Printf("importing attachment \"%s\" (%d/%d)", curTest, idx + 1, len(args))
 		}
 
 		log.Printf("new test with ID %d has been created", testID)
