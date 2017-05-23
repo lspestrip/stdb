@@ -75,6 +75,14 @@ func TestIntegratedDatabase(t *testing.T) {
 	if !reflect.DeepEqual(refTest, test) {
 		t.Errorf("GetTest returned the wrong test: %v instead of %v", test, refTest)
 	}
+
+	ids, err := conn.GetListOfTestIDs("dummy", -1)
+	if err != nil {
+		t.Errorf("GetListOfTestIDs returned an error: %v", err)
+	}
+	if len(ids) != 1 || ids[0] != testID {
+		t.Errorf("unexpected value for the result of GetListOfTestIDs: %v", ids)
+	}
 }
 
 func TestMain(m *testing.M) {

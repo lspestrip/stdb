@@ -195,6 +195,39 @@ values (?, ?, ?)`,
 	return int(id), nil
 }
 
+// GetListOfTestIDs returns a list of the IDs for all the tests in the database.
+//
+// If maxNum is positive, it specifies the maximum number of IDs to retrieve.
+// A negative number means that no limit is used. IDs are returned in descending
+// order, that is, from the most recent test to the most ancient one. The "username"
+// is used only for logging purposes.
+func (conn *Connection) GetListOfTestIDs(username string, maxNum int) ([]int, error) {
+	if (! conn.Active) {
+		return []int{}, fmt.Errorf(MsgInactiveConnection)
+	}
+
+	rows, err := conn.Connection.Query(`select test_id from tests order by test_id desc limit ?`, 
+	                                   maxNum)
+	if err != nil {
+		return []int{}, err
+	}
+	defer rows.Close()
+
+	result := make([]int, 0)
+	for rows.Next() {
+		var curID int64
+		if err := rows.Scan(&curID); err != nil {
+			return []int{}, err
+		}
+		result = append(result, int(curID))
+	}
+
+	conn.Log(fmt.Sprintf("querying the IDs of the tests in the database, %d results returned (maxNum=%d)",
+	         len(result), maxNum), username)
+	return result, nil
+}
+
+
 // GetTest searches for a test with the given ID in the database.
 // If a matching test is found in the database, the function fills
 // the structure pointed by "test." The parameter "username" is
