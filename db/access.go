@@ -26,6 +26,7 @@ import (
 	"database/sql"
 	// Driver for accessing the Sqlite3 database file
 	_ "github.com/mattn/go-sqlite3"
+	"os"
 )
 
 // Connection is a connection to some existing database
@@ -44,6 +45,12 @@ func (conn *Connection) Connect(basepath string) error {
 	conn.BasePath = basepath
 
 	indexFileName := path.Join(basepath, IndexFileName)
+	// Since Sqlite3 will silently create missing files, we need to check
+	// if "index.db" really exists or not, because this is one of the most
+	// common errors users do.
+	if _, err := os.Stat(indexFileName); err != nil {
+		return err
+	}
 	var err error
 	conn.Connection, err = sql.Open("sqlite3", indexFileName)
 	if err != nil {
