@@ -21,6 +21,7 @@
 package convert
 
 import (
+	"fmt"
 	"path"
 	"time"
 	"strings"
@@ -53,5 +54,5 @@ func FileType(filepath string) (string, error) {
 			return "keithley", nil
 	}
 
-	return "unknown", nil
+	return fmt.Sprintf("unknown(\"%s\")", fileExt), nil
 }
