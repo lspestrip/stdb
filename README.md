@@ -28,6 +28,8 @@ the following packages:
 - [readline](https://github.com/chzyer/readline) (CLI input)
 - [cobra](https://github.com/spf13/cobra) (CLI interface)
 - [viper](https://github.com/spf13/viper) (configuration files)
+- [Gin](https://github.com/gin-gonic/gin) (WebUI interface)
+- [UUID](https://github.com/satori/go.uuid) (managing UUIDs)
 
 Then download this package and run
 
@@ -37,6 +39,38 @@ to compile it and run a test suite. If all the tests pass, you can get an
 overview of `stdb`'s commands by running
 
     stdb help
+
+## Example
+
+### Command-line interface
+
+The following commands use the CLI to create a database and add an user
+and a test to it.
+
+First, you need to create a database at some specific path; we use `./test1`. The
+following command will create the directory `test1` within the current path
+and initialize an empty database in it:
+
+    $ stdb create --dbpath ./test1
+    creating directory "test1"
+    creating a new database file "test1/index.db"
+    database "test1" created
+
+Next, we create a new user:
+
+    $ > stdb --dbpath ./test1 adduser --email "user@foo.bar" --fullname "Abraham Lincoln" --username "lincoln"
+    Password:
+    Enter again the password:
+    user "lincoln" created successfully in database "test1"
+
+Now we can add a few tests. Since this is just an example, we will use a test
+data file provided in the distribution (`testdata/keithley_test.xls`):
+
+    $ stdb --dbpath test1 add --description "A test file acquired using Keithley" \
+           --polarimeter 1 --shortname "Phase switch tuning" \
+           --type "PH/SW" --username "lincoln" testdata/keithley_test.xls cryo
+    importing file "testdata/keithley_file.xls"
+    new test with ID 1 has been created
 
 ## License
 
