@@ -30,6 +30,7 @@ the following packages:
 - [viper](https://github.com/spf13/viper) (configuration files)
 - [Gin](https://github.com/gin-gonic/gin) (WebUI interface)
 - [UUID](https://github.com/satori/go.uuid) (managing UUIDs)
+- [bcrypt](https://godoc.org/golang.org/x/crypto/bcrypt) (password hashing algorithm)
 
 Then download this package and run
 
