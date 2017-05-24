@@ -21,11 +21,11 @@
 package cmd
 
 import (
-	"bytes"
 	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/chzyer/readline"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ziotom78/stdb/db"
 )
@@ -73,7 +73,7 @@ This command requires a working tty terminal.`,
 			log.Fatalf("unable to retrieve the password for user \"%s\": %v", username, err)
 		}
 
-		if bytes.Compare(db.PasswordHash(oldpass), oldpassFromDb) != 0 {
+		if bcrypt.CompareHashAndPassword(oldpass, oldpassFromDb) != nil {
 			log.Fatalf("wrong password for user \"%s\"", username)
 		}
 
@@ -82,7 +82,7 @@ This command requires a working tty terminal.`,
 			log.Fatal(err)
 		}
 
-		if err := conn.ChangeUserPassword(username, db.PasswordHash(newpass)); err != nil {
+		if err := conn.ChangeUserPassword(username, newpass); err != nil {
 			log.Fatal(err)
 		}
 

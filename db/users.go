@@ -23,16 +23,8 @@ package db
 import (
 	"fmt"
 	"time"
-	"crypto/sha1"
+	"golang.org/x/crypto/bcrypt"	
 )
-
-// PasswordHash computes the SHA1 hash of a password. The
-// return value of this function is what is saved as the
-// "encrypted_password" in the "users" table of the database.
-func PasswordHash(password []byte) []byte {
-	result := sha1.Sum(password)
-	return result[:]
-}
 
 // CreateUser add a new user in the "users" table of the database
 func (conn *Connection) CreateUser(
@@ -46,11 +38,16 @@ func (conn *Connection) CreateUser(
 		return fmt.Errorf(MsgInactiveConnection)
 	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
 	curDate := time.Now().UTC().Format(time.RFC3339)
-	_, err := conn.Connection.Exec(`
+	_, err = conn.Connection.Exec(`
 insert into users (user_id, password_hash, full_name, creation_date, email, is_enabled)
 values (?, ?, ?, ?, ?, ?)`,
-		user, PasswordHash(password), fullname, curDate, email, isEnabled)
+		user, hashedPassword, fullname, curDate, email, isEnabled)
 
 	conn.Log("new user has been created", user)
 
@@ -107,16 +104,23 @@ select password_hash from users where user_id = ?`,
 }
 
 // ChangeUserPassword updates the password of a user in the database
+// "newPassword" must *not* be hashed.
 func (conn *Connection) ChangeUserPassword(user string,	newPassword []byte) error {
 	if !conn.Active {
 		return fmt.Errorf(MsgInactiveConnection)
 	}
 
-	_, err := conn.Connection.Exec(`
+	hashedPassword, err := bcrypt.GenerateFromPassword(newPassword, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	_, err = conn.Connection.Exec(`
 update users set password_hash = ? where user_id = ?`,
-		PasswordHash(newPassword), user)
+		hashedPassword, user)
 
-	conn.Log("password has been changed", user)
+	if err == nil {
+		conn.Log("password has been changed", user)
+	}
 
 	return err
 }
