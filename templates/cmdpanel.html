@@ -1,5 +1,15 @@
 <div id="cmdpanel">
-    <p><a href="/login">Login</a></p>
+    <p>
+        {{ if .loggedIn }}
+        <p> {{ .username }} (<a href="/logout">logout</a>)</p>
+        {{ else }}
+        <form action="/authenticate" method="post">
+            User <input type="text" name="username" value="" /> Password <input type="password" name="password" />
+            <input type="submit" name="Login" value="Login" />
+        </form>
+        {{ end }}
+    </p>
+
     <p><a href="/upload">Upload</a></p>
     <p><a href="/search">Search</a></p>
 </div>

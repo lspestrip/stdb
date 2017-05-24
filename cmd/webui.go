@@ -21,12 +21,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
-	
+	"golang.org/x/crypto/bcrypt"
+	"github.com/satori/go.uuid"
+
 	"github.com/ziotom78/stdb/db"
+	"github.com/ziotom78/stdb/web"
 )
 
 const (
 	maxNumOfTestsToDisplay = 15
+	sessionCookieName = "session_cookie"
 )
 
 type dbEntry struct {
@@ -38,6 +42,78 @@ var (
 	dbConn db.Connection
 	username string
 )
+
+func authenticate(c *gin.Context) {
+	formUsername := c.PostForm("username")
+	formPassword := []byte(c.PostForm("password"))
+
+	password, err := dbConn.GetUserPassword(formUsername)
+	if err != nil || bcrypt.CompareHashAndPassword(password, formPassword) != nil {
+		dbConn.Log("failed authentication", formUsername)
+		c.HTML(http.StatusUnauthorized, "error.html", gin.H{
+			"errorMessage": fmt.Sprintf("access denied (%v)", err),
+		})
+		return
+	}
+	
+	session, _ := web.CreateSession(formUsername)
+	c.SetCookie(sessionCookieName, session.UUID.String(), 0, "", "", false, true)
+	c.Redirect(http.StatusMovedPermanently, "/")
+}
+
+// isCookieValid checks if a session cookie represents an authenticated session.
+// If it is so, it returns "true" and the name of the logged user; otherwise,
+// it returns an error code.
+func isCookieValid(c *gin.Context) (bool, web.Session, error) {
+	idStr, err := c.Cookie(sessionCookieName)
+	if err != nil {
+		return false, web.Session{}, err
+	}
+	cookieUUID, err := uuid.FromString(idStr)
+	if err != nil {
+		return false, web.Session{}, err
+	}
+
+	session, err := web.FindSessionByUUID(cookieUUID)
+	if err != nil {
+		return false, web.Session{}, err
+	}
+
+	return true, session, nil
+}
+
+// This is a wrapper for HTTP methods that prevents them from
+// being called when the user has not logged in yet.
+func protect(h gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		valid, session, err := isCookieValid(c)
+		if valid {
+			dbConn.Log(fmt.Sprintf("granting permission to page"), session.Username)
+			h(c) // Chain
+		} else {
+			dbConn.Log(fmt.Sprintf("in protect: error %v", err), "")
+			c.HTML(http.StatusServiceUnavailable, "error.html", gin.H{
+				"errorMessage": "Access denied",
+			})
+		}
+	}
+}
+
+// Disconnect the user
+func logout(c *gin.Context) {
+	valid, session, err := isCookieValid(c)
+	if ! valid {
+		c.HTML(http.StatusServiceUnavailable, "error.html", gin.H{
+			"errorMessage": fmt.Sprintf("unable to disconnect properly: %v", err),
+		})
+		return
+	}
+
+	// Delete this cookie
+	c.SetCookie(sessionCookieName, "", -1, "", "", false, true)
+	c.Redirect(http.StatusMovedPermanently, "/")
+	dbConn.Log(fmt.Sprintf("user has logged out"), session.Username)
+}
 
 // Show the main web page (template: mainpage.html)
 func mainPage(c *gin.Context) {
@@ -57,10 +133,13 @@ func mainPage(c *gin.Context) {
 		dbConn.GetTest(curID, username, &entries[idx].Test)
 	}
 
+	loggedIn, session, _ := isCookieValid(c)
 	c.HTML(http.StatusOK, "mainpage.html", gin.H{
 		"databaseSchemaVersion": db.DatabaseSchemaVersion,
 		"overallNumOfTests": overallNumOfTests,
 		"entries": entries,
+		"loggedIn": loggedIn,
+		"username": session.Username,
 	})
 }
 
@@ -107,7 +186,9 @@ the current host.`,
 		router.LoadHTMLGlob("templates/*.html")
 
 		router.GET("/", mainPage)
-		router.GET("/tests/:testID", testInformation)
+		router.GET("/tests/:testID", protect(testInformation))
+		router.POST("/authenticate", authenticate)
+		router.GET("/logout", protect(logout))
 
 		router.Run(fmt.Sprintf(":%d", port))
 
