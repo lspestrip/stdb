@@ -29,7 +29,7 @@ import (
 
 	"github.com/astrogo/fitsio"
 
-	"github.com/ziotom78/stdb/convert"
+	"github.com/lspestrip/stdb/convert"
 	"database/sql"
 )
 
@@ -192,7 +192,7 @@ where test_id = ?`,
 		os.Remove(outFitsFilePath)
 		return -1, err
 	}
-	
+
 	if err := tx.Commit(); err != nil {
 		os.Remove(outFitsFilePath)
 		return -1, err
