@@ -64,7 +64,7 @@ func CreateEmptyDatabase(dbpath string, mode CreationMode) error {
 	indexFileName := path.Join(dbpath, IndexFileName)
 	if mode == Overwrite {
 		// Ignore the return value
-		os.RemoveAll(indexFileName)
+		os.RemoveAll(dbpath)
 	}
 
 	log.Printf("creating directory \"%s\"", dbpath)
