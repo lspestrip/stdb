@@ -24,8 +24,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"github.com/satori/go.uuid"
 
-	"github.com/ziotom78/stdb/db"
-	"github.com/ziotom78/stdb/web"
+	"github.com/lspestrip/stdb/db"
+	"github.com/lspestrip/stdb/web"
 )
 
 const (

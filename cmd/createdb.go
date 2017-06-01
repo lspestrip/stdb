@@ -15,7 +15,7 @@ package cmd
 
 import (
 	"log"
-	"github.com/ziotom78/stdb/db"
+	"github.com/lspestrip/stdb/db"
 
 	"github.com/spf13/cobra"
 )

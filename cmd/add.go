@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/chzyer/readline"
 
-	"github.com/ziotom78/stdb/db"
+	"github.com/lspestrip/stdb/db"
 )
 
 var (

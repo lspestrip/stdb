@@ -27,7 +27,7 @@ import (
 	"github.com/chzyer/readline"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/ziotom78/stdb/db"
+	"github.com/lspestrip/stdb/db"
 )
 
 // passwdCmd represents the passwd command

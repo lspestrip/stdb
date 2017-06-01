@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/chzyer/readline"
 
-	"github.com/ziotom78/stdb/db"
+	"github.com/lspestrip/stdb/db"
 )
 
 // AskPassword gets a password to the user and asks to repeat
