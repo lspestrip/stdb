@@ -179,14 +179,20 @@ values (?, ?, ?, ?, ?, ?, ?, ?)`,
 	// Update the entry in the database with the information extracted from
 	// the FITS file that has just been created
 	result, err = tx.Exec(`
-update tests set (creation_date,
-                  time_span_sec,
-				  num_of_samples)
-values (?, ?, ?)`,
+update or fail tests set (creation_date,
+                          time_span_sec,
+				          num_of_samples) = (?, ?, ?)
+where test_id = ?`,
 		testFile.CreationDate.Format(time.RFC3339),
 		testFile.TimeSpanSec,
-		testFile.NumOfSamples)
-
+		testFile.NumOfSamples,
+		id)
+	if err != nil {
+		tx.Rollback()
+		os.Remove(outFitsFilePath)
+		return -1, err
+	}
+	
 	if err := tx.Commit(); err != nil {
 		os.Remove(outFitsFilePath)
 		return -1, err
